@@ -32,6 +32,10 @@ extends VBoxContainer
 var active_scene_instance: Node = null
 var watched_scene_root: Node = null
 var debounce_timer: Timer = null
+var plugin_instance: EditorPlugin = null
+
+func set_plugin_instance(p_plugin: EditorPlugin) -> void:
+	plugin_instance = p_plugin
 
 # Estado Unificado 2D / 3D
 var is_3d: bool = false
@@ -313,8 +317,8 @@ func _on_play_pressed() -> void:
 	
 	# Si previsualizamos la escena activa del editor, vigilar cambios globales del historial de edición (UndoRedo)
 	if scene_mode_button and scene_mode_button.button_pressed:
-		if Engine.is_editor_hint():
-			var undo_redo = EditorInterface.get_undo_redo()
+		if Engine.is_editor_hint() and plugin_instance:
+			var undo_redo = plugin_instance.get_undo_redo()
 			if undo_redo:
 				_connect_signal_safe(undo_redo.history_changed, _on_watched_scene_changed)
 	
@@ -402,8 +406,8 @@ func _on_stop_pressed() -> void:
 	is_dragging = false
 	
 	# Desconectar vigilancia de cambios en vivo
-	if Engine.is_editor_hint():
-		var undo_redo = EditorInterface.get_undo_redo()
+	if Engine.is_editor_hint() and plugin_instance:
+		var undo_redo = plugin_instance.get_undo_redo()
 		if undo_redo and undo_redo.history_changed.is_connected(_on_watched_scene_changed):
 			undo_redo.history_changed.disconnect(_on_watched_scene_changed)
 	watched_scene_root = null

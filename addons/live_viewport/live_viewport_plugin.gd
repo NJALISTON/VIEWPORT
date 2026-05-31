@@ -8,6 +8,8 @@ func _enter_tree() -> void:
 	var panel_scene = ResourceLoader.load("res://addons/live_viewport/live_viewport_panel.tscn", "PackedScene", ResourceLoader.CACHE_MODE_IGNORE)
 	if panel_scene:
 		panel_instance = panel_scene.instantiate()
+		if panel_instance.has_method("set_plugin_instance"):
+			panel_instance.set_plugin_instance(self)
 		# Asignar un nombre al nodo para que sirva de título en la pestaña del Dock
 		panel_instance.name = "Live View 2D"
 		# Añadirlo como panel acoplable (Dock) en la parte superior derecha por defecto
