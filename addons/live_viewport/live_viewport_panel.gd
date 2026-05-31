@@ -377,6 +377,7 @@ func _on_play_pressed() -> void:
 	
 	_update_zoom_display()
 	_update_aspect_ratio_mode()
+	_apply_project_rendering_settings()
 	_update_coords_display(Vector2.ZERO, Vector2.ZERO)
 	_update_viewport_render_mode()
 
@@ -937,3 +938,48 @@ func _update_aspect_ratio_mode() -> void:
 		# Modo Ajustar/Expandir completamente al panel dock
 		if aspect_ratio_container.size.y > 0:
 			aspect_ratio_container.ratio = float(aspect_ratio_container.size.x) / float(aspect_ratio_container.size.y)
+
+# ----------------- PARIDAD DE RENDERIZADO DEL PROYECTO -----------------
+
+func _apply_project_rendering_settings() -> void:
+	if not viewport:
+		return
+		
+	# 1. Copiar configuración de MSAA 2D
+	var msaa_2d_val = ProjectSettings.get_setting("rendering/anti_aliasing/quality/msaa_2d")
+	if msaa_2d_val != null:
+		viewport.msaa_2d = msaa_2d_val
+		
+	# 2. Copiar configuración de MSAA 3D
+	var msaa_3d_val = ProjectSettings.get_setting("rendering/anti_aliasing/quality/msaa_3d")
+	if msaa_3d_val != null:
+		viewport.msaa_3d = msaa_3d_val
+		
+	# 3. Copiar configuración de Screen Space AA (FXAA)
+	var ss_aa_val = ProjectSettings.get_setting("rendering/anti_aliasing/quality/screen_space_aa")
+	if ss_aa_val != null:
+		viewport.screen_space_aa = ss_aa_val
+		
+	# 4. Copiar configuración de Debanding
+	var debanding_val = ProjectSettings.get_setting("rendering/anti_aliasing/quality/use_debanding")
+	if debanding_val != null:
+		viewport.use_debanding = debanding_val
+		
+	# 5. Copiar configuración de HDR 2D
+	var hdr_2d_val = ProjectSettings.get_setting("rendering/viewport/hdr_2d")
+	if hdr_2d_val != null:
+		viewport.use_hdr_2d = hdr_2d_val
+		
+	# 6. Copiar filtro de textura por defecto para 2D
+	var tex_filter_val = ProjectSettings.get_setting("rendering/textures/canvas_textures/default_texture_filter")
+	if tex_filter_val != null:
+		viewport.canvas_item_default_texture_filter = tex_filter_val
+		
+	# 7. Copiar ajuste de Pixel Snapping de 2D si está configurado en el proyecto
+	var snap_transforms = ProjectSettings.get_setting("rendering/2d/snap/snap_2d_transforms_to_pixel")
+	if snap_transforms != null:
+		viewport.snap_2d_transforms_to_pixel = snap_transforms
+		
+	var snap_vertices = ProjectSettings.get_setting("rendering/2d/snap/snap_2d_vertices_to_pixel")
+	if snap_vertices != null:
+		viewport.snap_2d_vertices_to_pixel = snap_vertices
