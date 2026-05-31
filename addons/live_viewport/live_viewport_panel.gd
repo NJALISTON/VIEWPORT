@@ -400,6 +400,10 @@ func _on_stop_pressed() -> void:
 	
 	if aspect_ratio_container:
 		aspect_ratio_container.ratio = 1.0
+		
+	if viewport:
+		viewport.size_2d_override = Vector2i.ZERO
+		viewport.size_2d_override_stretch = false
 	
 	if grid_overlay and is_instance_valid(grid_overlay):
 		grid_overlay.queue_free()
@@ -983,3 +987,10 @@ func _apply_project_rendering_settings() -> void:
 	var snap_vertices = ProjectSettings.get_setting("rendering/2d/snap/snap_2d_vertices_to_pixel")
 	if snap_vertices != null:
 		viewport.snap_2d_vertices_to_pixel = snap_vertices
+		
+	# 8. Sincronizar el escalado de resolución lógica 2D (size_2d_override) para que la UI se auto-ajuste y escale
+	var width = ProjectSettings.get_setting("display/window/size/viewport_width")
+	var height = ProjectSettings.get_setting("display/window/size/viewport_height")
+	if width and height and not is_3d:
+		viewport.size_2d_override = Vector2i(width, height)
+		viewport.size_2d_override_stretch = true
