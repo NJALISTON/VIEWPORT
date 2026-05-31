@@ -30,6 +30,8 @@ extends VBoxContainer
 @onready var aspect_button: Button = %AspectButton
 
 var active_scene_instance: Node = null
+var watched_scene_root: Node = null
+var debounce_timer: Timer = null
 
 # Estado Unificado 2D / 3D
 var is_3d: bool = false
@@ -153,6 +155,14 @@ func _ready() -> void:
 	# Configurar estado inicial
 	_update_ui_state(false)
 	_update_coords_display(Vector2.ZERO, Vector2.ZERO)
+	
+	# Inicializar temporizador de actualización en caliente (debounce)
+	debounce_timer = Timer.new()
+	debounce_timer.name = "DebounceTimer"
+	debounce_timer.one_shot = true
+	debounce_timer.wait_time = 0.5
+	add_child(debounce_timer)
+	_connect_signal_safe(debounce_timer.timeout, _on_debounce_timeout)
 
 func _process(delta: float) -> void:
 	# Asegurar que el grid técnico siga a la cámara 2D activa en todo momento
@@ -301,6 +311,12 @@ func _on_play_pressed() -> void:
 	active_scene_instance = loaded_scene.instantiate()
 	viewport.add_child(active_scene_instance)
 	
+	# Si previsualizamos la escena activa del editor, vigilar sus cambios en vivo
+	if scene_mode_button and scene_mode_button.button_pressed:
+		watched_scene_root = EditorInterface.get_edited_scene_root()
+		if watched_scene_root and is_instance_valid(watched_scene_root):
+			_connect_signal_safe(watched_scene_root.tree_changed, _on_watched_scene_changed)
+	
 	# AUTOMÁTICAMENTE DETECTAR SI LA ESCENA ES 2D O 3D!
 	is_3d = active_scene_instance is Node3D
 	
@@ -383,6 +399,15 @@ func _on_play_pressed() -> void:
 
 func _on_stop_pressed() -> void:
 	is_dragging = false
+	
+	# Desconectar vigilancia de cambios en vivo
+	if watched_scene_root and is_instance_valid(watched_scene_root):
+		if watched_scene_root.tree_changed.is_connected(_on_watched_scene_changed):
+			watched_scene_root.tree_changed.disconnect(_on_watched_scene_changed)
+	watched_scene_root = null
+	
+	if debounce_timer and is_instance_valid(debounce_timer):
+		debounce_timer.stop()
 	
 	# Limpiar 3D
 	if debug_camera3d and is_instance_valid(debug_camera3d):
@@ -987,6 +1012,87 @@ func _apply_project_rendering_settings() -> void:
 	var snap_vertices = ProjectSettings.get_setting("rendering/2d/snap/snap_2d_vertices_to_pixel")
 	if snap_vertices != null:
 		viewport.snap_2d_vertices_to_pixel = snap_vertices
+
+# ----------------- ACTUALIZACIÓN EN CALIENTE (REAL-TIME HOT RELOAD) -----------------
+
+func _on_watched_scene_changed() -> void:
+	if debounce_timer and active_scene_instance != null:
+		debounce_timer.start()
+
+func _on_debounce_timeout() -> void:
+	if active_scene_instance == null:
+		return
+		
+	# Guardar configuración de la cámara actual
+	var saved_cam_index = 0
+	if camera_selector:
+		saved_cam_index = camera_selector.selected
+		
+	var saved_target_pos = target_camera_pos
+	var saved_target_zoom = target_camera_zoom
+	var saved_rot_x = target_rot_x
+	var saved_rot_y = target_rot_y
+	var saved_dist = target_distance
+	var saved_pivot = target_pivot_pos
+	
+	# Recargar en caliente desde la memoria
+	_reload_active_scene()
+	
+	# Restaurar configuración de cámara
+	target_camera_pos = saved_target_pos
+	target_camera_zoom = saved_target_zoom
+	target_rot_x = saved_rot_x
+	target_rot_y = saved_rot_y
+	target_distance = saved_dist
+	target_pivot_pos = saved_pivot
+	
+	if camera_selector and saved_cam_index < camera_selector.item_count:
+		camera_selector.selected = saved_cam_index
+		_on_camera_selected(saved_cam_index)
+
+func _reload_active_scene() -> void:
+	if active_scene_instance == null:
+		return
+		
+	var was_scene_mode = scene_mode_button.button_pressed if scene_mode_button else false
+	
+	# Limpiar instancia anterior
+	if active_scene_instance and is_instance_valid(active_scene_instance):
+		active_scene_instance.queue_free()
+	active_scene_instance = null
+	
+	# Limpiar hijos temporales excepto cámaras y luz de depuración
+	for child in viewport.get_children():
+		if child != debug_camera and child != debug_camera3d and child != debug_light and child != grid_overlay:
+			child.queue_free()
+			
+	var loaded_scene: PackedScene = null
+	var scene_path = "res://main.tscn"
+	
+	if was_scene_mode:
+		if Engine.is_editor_hint():
+			var root = EditorInterface.get_edited_scene_root()
+			if root and is_instance_valid(root):
+				scene_path = root.scene_file_path
+				# Serializar en caliente directamente desde la memoria (incluye cambios no guardados)
+				var packed = PackedScene.new()
+				var err = packed.pack(root)
+				if err == OK:
+					loaded_scene = packed
+					
+	if not loaded_scene:
+		loaded_scene = ResourceLoader.load(scene_path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE)
+		
+	if loaded_scene:
+		active_scene_instance = loaded_scene.instantiate()
+		viewport.add_child(active_scene_instance)
+		
+		_refresh_camera_selector()
+		_update_aspect_ratio_mode()
+		_apply_project_rendering_settings()
+		
+		if status_label:
+			status_label.text = "Actualizado en Vivo: " + scene_path.get_file()
 		
 	# 8. Sincronizar el escalado de resolución lógica 2D (size_2d_override) para que la UI se auto-ajuste y escale
 	var width = ProjectSettings.get_setting("display/window/size/viewport_width")
