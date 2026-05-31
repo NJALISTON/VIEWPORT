@@ -311,11 +311,12 @@ func _on_play_pressed() -> void:
 	active_scene_instance = loaded_scene.instantiate()
 	viewport.add_child(active_scene_instance)
 	
-	# Si previsualizamos la escena activa del editor, vigilar sus cambios en vivo
+	# Si previsualizamos la escena activa del editor, vigilar cambios globales del historial de edición (UndoRedo)
 	if scene_mode_button and scene_mode_button.button_pressed:
-		watched_scene_root = EditorInterface.get_edited_scene_root()
-		if watched_scene_root and is_instance_valid(watched_scene_root):
-			_connect_signal_safe(watched_scene_root.tree_changed, _on_watched_scene_changed)
+		if Engine.is_editor_hint():
+			var undo_redo = EditorInterface.get_undo_redo()
+			if undo_redo:
+				_connect_signal_safe(undo_redo.history_changed, _on_watched_scene_changed)
 	
 	# AUTOMÁTICAMENTE DETECTAR SI LA ESCENA ES 2D O 3D!
 	is_3d = active_scene_instance is Node3D
@@ -401,9 +402,10 @@ func _on_stop_pressed() -> void:
 	is_dragging = false
 	
 	# Desconectar vigilancia de cambios en vivo
-	if watched_scene_root and is_instance_valid(watched_scene_root):
-		if watched_scene_root.tree_changed.is_connected(_on_watched_scene_changed):
-			watched_scene_root.tree_changed.disconnect(_on_watched_scene_changed)
+	if Engine.is_editor_hint():
+		var undo_redo = EditorInterface.get_undo_redo()
+		if undo_redo and undo_redo.history_changed.is_connected(_on_watched_scene_changed):
+			undo_redo.history_changed.disconnect(_on_watched_scene_changed)
 	watched_scene_root = null
 	
 	if debounce_timer and is_instance_valid(debounce_timer):
