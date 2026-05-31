@@ -1,0 +1,26 @@
+# EditorConfig configuration for Godot projects
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# GDScript files (Godot official style uses Tabs)
+[*.gd]
+indent_style = tab
+indent_size = 4
+
+# Godot configuration and scene files
+[*.{tscn,godot,cfg}]
+indent_style = tab
+indent_size = 4
+
+# Markdown and JSON files
+[*.{md,json}]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false
