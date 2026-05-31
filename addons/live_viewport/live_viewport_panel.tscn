@@ -104,6 +104,14 @@ toggle_mode = true
 button_pressed = true
 flat = true
 
+[node name="AspectButton" type="Button" parent="Toolbar/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Alternar relación de aspecto nativa del proyecto / Ajustar al panel"
+toggle_mode = true
+button_pressed = true
+flat = true
+
 [node name="ScreenshotButton" type="Button" parent="Toolbar/Margin/HBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -143,13 +151,17 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ViewportContainer" type="SubViewportContainer" parent="Workspace/ViewportArea"]
+[node name="AspectRatioContainer" type="AspectRatioContainer" parent="Workspace/ViewportArea"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="ViewportContainer" type="SubViewportContainer" parent="Workspace/ViewportArea/AspectRatioContainer"]
+unique_name_in_owner = true
+layout_mode = 2
 stretch = true
 
-[node name="Viewport" type="SubViewport" parent="Workspace/ViewportArea/ViewportContainer"]
+[node name="Viewport" type="SubViewport" parent="Workspace/ViewportArea/AspectRatioContainer/ViewportContainer"]
 unique_name_in_owner = true
 disable_3d = false
 handle_input_locally = true

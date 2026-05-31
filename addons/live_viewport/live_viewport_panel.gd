@@ -26,6 +26,9 @@ extends VBoxContainer
 # Selector de Cámara de la Escena
 @onready var camera_selector: OptionButton = %CameraSelector
 
+@onready var aspect_ratio_container: AspectRatioContainer = %AspectRatioContainer
+@onready var aspect_button: Button = %AspectButton
+
 var active_scene_instance: Node = null
 
 # Estado Unificado 2D / 3D
@@ -140,6 +143,10 @@ func _ready() -> void:
 	# Conexión del selector de cámara
 	if camera_selector: _connect_signal_safe(camera_selector.item_selected, _on_camera_selected)
 	
+	# Conexiones para control de relación de aspecto
+	if aspect_button: _connect_signal_safe(aspect_button.toggled, _on_aspect_toggled)
+	if aspect_ratio_container: _connect_signal_safe(aspect_ratio_container.resized, _on_aspect_container_resized)
+	
 	# Conexión de señal de visibilidad para suspender el procesamiento
 	_connect_signal_safe(visibility_changed, _on_visibility_changed)
 	
@@ -224,6 +231,7 @@ func _setup_editor_icons() -> void:
 			# Iconos Premium
 			if fit_button: fit_button.icon = editor_base.get_theme_icon("ToolFrameSelection", "EditorIcons")
 			if screenshot_button: screenshot_button.icon = editor_base.get_theme_icon("Camera", "EditorIcons")
+			if aspect_button: aspect_button.icon = editor_base.get_theme_icon("AspectRatio", "EditorIcons")
 			
 			# Configurar SceneModeButton con icono según el estado
 			_update_scene_mode_button_icon()
@@ -253,6 +261,7 @@ func _update_ui_state(is_running: bool) -> void:
 	if zoom_in_button: zoom_in_button.disabled = not is_running
 	if zoom_out_button: zoom_out_button.disabled = not is_running
 	if camera_selector: camera_selector.disabled = not is_running
+	if aspect_button: aspect_button.disabled = not is_running
 	
 	if status_label:
 		if is_running:
@@ -367,6 +376,7 @@ func _on_play_pressed() -> void:
 	_refresh_camera_selector()
 	
 	_update_zoom_display()
+	_update_aspect_ratio_mode()
 	_update_coords_display(Vector2.ZERO, Vector2.ZERO)
 	_update_viewport_render_mode()
 
@@ -386,6 +396,9 @@ func _on_stop_pressed() -> void:
 	if debug_camera and is_instance_valid(debug_camera):
 		debug_camera.queue_free()
 	debug_camera = null
+	
+	if aspect_ratio_container:
+		aspect_ratio_container.ratio = 1.0
 	
 	if grid_overlay and is_instance_valid(grid_overlay):
 		grid_overlay.queue_free()
@@ -898,3 +911,29 @@ func _on_left_ruler_draw() -> void:
 	var local_mouse = left_ruler.get_local_mouse_position()
 	if local_mouse.y >= 0 and local_mouse.y <= ruler_height:
 		left_ruler.draw_line(Vector2(0, local_mouse.y), Vector2(ruler_width, local_mouse.y), Color(0.9, 0.35, 0.35, 0.7), 1.2)
+
+# ----------------- CONTROL DE RELACIÓN DE ASPECTO -----------------
+
+func _on_aspect_toggled(_toggled_on: bool) -> void:
+	_update_aspect_ratio_mode()
+
+func _on_aspect_container_resized() -> void:
+	if aspect_button and not aspect_button.button_pressed:
+		_update_aspect_ratio_mode()
+
+func _update_aspect_ratio_mode() -> void:
+	if not aspect_ratio_container:
+		return
+		
+	if aspect_button and aspect_button.button_pressed:
+		# Modo Aspecto Nativo del Proyecto
+		var width = ProjectSettings.get_setting("display/window/size/viewport_width")
+		var height = ProjectSettings.get_setting("display/window/size/viewport_height")
+		if width and height:
+			aspect_ratio_container.ratio = float(width) / float(height)
+		else:
+			aspect_ratio_container.ratio = 1.0
+	else:
+		# Modo Ajustar/Expandir completamente al panel dock
+		if aspect_ratio_container.size.y > 0:
+			aspect_ratio_container.ratio = float(aspect_ratio_container.size.x) / float(aspect_ratio_container.size.y)
