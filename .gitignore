@@ -1,6 +1,7 @@
 # Godot-specific excludes
 .godot/
 *.translation
+*.uid
 
 # Mono/C# specific excludes (if used in future)
 .mono/
