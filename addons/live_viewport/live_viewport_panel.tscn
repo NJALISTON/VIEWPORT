@@ -164,6 +164,12 @@ stretch = true
 [node name="Viewport" type="SubViewport" parent="Workspace/ViewportArea/AspectRatioContainer/ViewportContainer"]
 unique_name_in_owner = true
 disable_3d = false
+use_hdr_2d = true
+use_debanding = true
+msaa_2d = 2
+msaa_3d = 2
+screen_space_aa = 1
+canvas_item_default_texture_filter = 3
 handle_input_locally = true
 gui_disable_input = false
 size = Vector2i(512, 512)
